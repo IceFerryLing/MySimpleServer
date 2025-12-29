@@ -8,8 +8,8 @@ using namespace std;
 class Server{
 public:
     //构造函数，初始化io_context和acceptor，并开始接受连接
-    Server(boost::asio::io_context& ioc, short port);
-
+    Server(boost::asio::io_context& ioc, short  port);
+    void ClearSession(std::string uuid);
 private:
     //开始接受连接
     void start_accept();
