@@ -16,6 +16,10 @@ public:
         _uuid = boost::uuids::to_string(a_uuid);
     }
 
+    ~Session(){
+        std::cout << "Session destruct delete this" << this << std::endl;
+    }
+
     //Socket()作用是返回当前会话的socket引用，以便服务器能够接受连接。
     tcp::socket& Socket(){
         return _socket;
