@@ -52,9 +52,20 @@ public:
                             , std::shared_ptr<MsgNode> msg);
     void WriteToSocket(const std::string& buf);
 
+    void WriteAllToSocket(const std::string& buf);
+    void WriteAllCallBack(const boost::system::error_code& error
+                            , size_t bytes_transferred
+                            , std::shared_ptr<MsgNode> msg);
+
+    void ReadFromSocket();
+    void ReadCallBack(const boost::system::error_code& error, size_t bytes_transferred);
+
 private:
     std::queue<std::shared_ptr<MsgNode>> _send_queue;
     std::shared_ptr<asio::ip::tcp::socket> _socket;
     std::shared_ptr<MsgNode> _send_node;
     bool _send_pending;
+
+    std::shared_ptr<MsgNode> _recv_node;
+    std::size_t _recv_pending;
 };
