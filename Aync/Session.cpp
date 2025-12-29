@@ -134,3 +134,27 @@ void Session::ReadCallBack(const boost::system::error_code& error, size_t bytes_
     _recv_pending = 0;
     _recv_node = nullptr;
 }
+
+void Session::ReadAllFromSocket(){
+    if(_recv_pending){
+        return;
+    }
+
+    _recv_node = std::make_shared<MsgNode>(RECVSIZE);
+    this->_socket->async_receive(asio::buffer(_recv_node->_msg, _recv_node->_total_len),
+        std::bind(&Session::ReadAllCallBack, this, std::placeholders::_1, std::placeholders::_2));
+}
+
+void Session::ReadAllCallBack(const boost::system::error_code& error, size_t bytes_transferred){
+    _recv_node->_cur_len += bytes_transferred;
+    if(_recv_node->_cur_len < _recv_node->_total_len){
+        _socket->async_receive(asio::buffer(_recv_node->_msg + _recv_node->_cur_len, 
+            _recv_node->_total_len - _recv_node->_cur_len),
+            std::bind(&Session::ReadAllCallBack, this, std::placeholders::_1, std::placeholders::_2));
+
+        return;
+    }
+
+    _recv_pending = 0;
+    _recv_node = nullptr;
+}
