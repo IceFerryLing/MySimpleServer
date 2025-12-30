@@ -35,9 +35,13 @@ void Session::HandleRead(const boost::system::error_code& error,
     if(!error){
         cout << "Received from client: " << _socket.remote_endpoint().address().to_string() << endl;
         cout << "Received data: " << _recv_buffer << endl;
-
-        boost::asio::async_write(_socket, boost::asio::buffer(_recv_buffer, bytes_transferred),
-            std::bind(&Session::HandleWrite, this, placeholders::_1, _self_shared));
+        
+        // 修正：使用 Send() 发送数据，并继续读取
+        Send(_recv_buffer, bytes_transferred);
+        
+        memset(_recv_buffer, 0, MAX_LENGTH);
+        _socket.async_read_some(boost::asio::buffer(_recv_buffer, MAX_LENGTH),
+            std::bind(&Session::HandleRead, this, placeholders::_1, placeholders::_2, _self_shared));
     }else{
         cerr << "Read error: " << error.message() << endl;
         _server->ClearSession(_uuid);
@@ -48,10 +52,19 @@ void Session::HandleRead(const boost::system::error_code& error,
 void Session::HandleWrite(const boost::system::error_code& error, 
     shared_ptr<Session> _self_shared){
     if(!error){
-        memset(_recv_buffer, 0, MAX_LENGTH);
+        std::lock_guard<std::mutex> lock(_send_lock);
+        _send_queue.pop();
+        if(!_send_queue.empty()){
+            auto &msgnode = _send_queue.front();
+            // 继续发送队列中的下一条消息
+            boost::asio::async_write(_socket, boost::asio::buffer(msgnode->_msg + msgnode->_cur_len, 
+                msgnode->_total_len - msgnode->_cur_len),
+                std::bind(&Session::HandleWrite, this, placeholders::_1, _self_shared));
+        }
 
-        _socket.async_read_some(boost::asio::buffer(_recv_buffer, MAX_LENGTH),
-            std::bind(&Session::HandleRead, this, placeholders::_1, placeholders::_2, _self_shared));
+        // memset(_recv_buffer, 0, MAX_LENGTH);
+        // _socket.async_read_some(boost::asio::buffer(_recv_buffer, MAX_LENGTH),
+        //     std::bind(&Session::HandleRead, this, placeholders::_1, placeholders::_2, _self_shared));
 
     }else{
         cerr << "Write error: " << error.message() << endl;

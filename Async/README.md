@@ -41,9 +41,14 @@ graph TD
     E --> F[async_read]
     F --> G{Data Received?}
     G -- Yes --> H[HandleRead]
-    H --> I[Process Data]
-    I --> J[async_write / Queue]
-    J --> F
+    H --> I[Send / Queue Push]
+    I --> J{Pending?}
+    J -- No --> K[async_write]
+    K --> L[HandleWrite]
+    L --> M[Pop Queue]
+    M --> N{Queue Empty?}
+    N -- No --> K
+    N -- Yes --> F
 ```
 
 ## 关键代码解析
@@ -109,7 +114,7 @@ void Session::Start(){
 | 文件 | 描述 |
 | :--- | :--- |
 | **`Server_demo.h/cpp`** | **服务器核心**<br>- `StartAccept()`: 异步等待新连接。<br>- `HandleAccept()`: 处理新连接，创建 Session 并启动。<br>- `ClearSession()`: 清理断开的连接。 |
-| **`Session_demo.h/cpp`** | **会话逻辑**<br>- `Start()`: 启动读写循环。<br>- `HandleRead()`: 收到数据后，发起异步写操作（回显）。<br>- `HandleWrite()`: 发送完成后，发起异步读操作（等待新数据）。 |
+| **`Session_demo.h/cpp`** | **会话逻辑**<br>- `Start()`: 启动读写循环。<br>- `Send()`: 消息入队，若无发送任务则触发 `async_write`。<br>- `HandleWrite()`: 发送回调。从队列弹出已发消息，若队列不空则继续发送下一条。 |
 | **`MsgNode.h`** | **消息节点**<br>- 管理发送数据的生命周期。<br>- 处理 TCP 拆包/粘包的基础结构（目前为 Header-only 实现）。 |
 
 ---
