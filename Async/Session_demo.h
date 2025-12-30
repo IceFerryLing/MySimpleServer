@@ -7,6 +7,7 @@
 
 using namespace std;
 using boost::asio::ip::tcp;
+
 class Server; // 前向声明
 
 class Session:public enable_shared_from_this<Session>{
@@ -27,6 +28,7 @@ public:
 
     //Start()方法用于启动会话，开始异步读取数据。
     void Start();
+    //GetUuid()方法返回会话的唯一标识符UUID。
     std::string& GetUuid();
 private:
     //处理读取数据的回调函数
