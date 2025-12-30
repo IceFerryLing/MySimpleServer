@@ -27,5 +27,5 @@ public:
 private:
     int _total_len; // 消息总长度
     int _cur_len;   // 当前已发送长度
-    char* _data;    // 消息数据缓冲区
+    char* _msg;    // 消息数据缓冲区
 };
