@@ -19,6 +19,75 @@
     - 引入**消息协议** (Header + Body) 解决 TCP 粘包/半包问题。
     - 更加健壮，接近生产环境的写法。
 
+## 架构对比 (v1 vs v2)
+
+### v1_Simple: 半双工与直接发送
+
+v1 版本采用最简单的 "Read -> Handle -> Write" 流程。
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Session
+    participant Socket
+
+    Note over Session: 1. 等待读取
+    Session->>Socket: async_read_some
+    Client->>Socket: Send Data
+    Socket-->>Session: HandleRead
+
+    Note over Session: 2. 处理并发送
+    Session->>Socket: async_write (Echo)
+    Socket-->>Session: HandleWrite
+
+    Note over Session: 3. 再次等待读取
+    Session->>Socket: async_read_some
+```
+
+**存在的问题**:
+1.  **半双工阻塞**: 必须等 `async_write` 完成后才能再次调用 `async_read`。如果发送数据量大或网络慢，服务器将无法及时处理客户端的新请求。
+2.  **并发写崩溃**: 如果业务逻辑需要在 `HandleRead` 之外（例如定时器、其他线程）发送数据，可能会导致多个 `async_write` 同时操作同一个 Socket，引发崩溃。
+3.  **粘包问题**: 没有定义消息边界，如果客户端发送 "Hello" 和 "World" 很快，服务器可能一次读到 "HelloWorld"，导致逻辑错误。
+
+### v2_FullDuplex: 全双工与队列机制
+
+v2 版本引入了 **发送队列** 和 **消息协议**，实现了真正的全双工通信。
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Session
+    participant Socket
+    participant Queue
+
+    Note over Session: 1. 持续读取 (独立循环)
+    Session->>Socket: async_read_some
+    Client->>Socket: Send Data
+    Socket-->>Session: HandleRead
+    Session->>Socket: async_read_some (立即再次调用)
+
+    Note over Session: 2. 异步发送 (独立循环)
+    Session->>Queue: Push Msg
+    
+    alt Queue was Empty
+        Session->>Socket: async_write
+    else Queue not Empty
+        Note right of Queue: 排队等待
+    end
+
+    Socket-->>Session: HandleWrite
+    Session->>Queue: Pop Msg
+    opt Queue has more
+        Session->>Socket: async_write
+    end
+```
+
+**改进带来的益处**:
+1.  **全双工通信**: 读和写完全分离。即使正在发送大数据，服务器依然能立即响应新的读取请求。
+2.  **线程安全与串行化**: 通过 `std::queue` 和 `std::mutex`，确保同一时刻只有一个 `async_write` 在执行，无论多少个线程同时调用 `Send()` 都是安全的。
+3.  **解决粘包**: 引入 `MsgNode` 和头部协议（Header Length + Body），配合状态机解析，确保每次都能拿到完整的业务包。
+4.  **生命周期管理**: `MsgNode` 独立管理数据内存，避免了异步操作中缓冲区失效的问题。
+
 ## 核心架构解析 (基于 v2_FullDuplex)
 
 ### 1. 核心数据结构：MsgNode
@@ -92,7 +161,7 @@ Boost.Asio 要求同一个 Socket 在同一时间只能有一个 `async_write` �
 *   **Send**: 加锁 -> 封装 MsgNode -> 入队 -> 若队列原为空则触发 `async_write`。
 *   **HandleWrite**: 检查错误 -> 弹出队首 -> 若队列不空则继续 `async_write`。
 
-## 完整交互流程
+## 完整交互流程 (v2)
 
 ```mermaid
 sequenceDiagram
