@@ -36,6 +36,9 @@ public:
     //Send()方法用于发送数据到客户端。
     void Send(char* msg, int length);
 
+    //粘包测试
+    void PrintRecvData(char* data, int length);
+
 private:
     //处理读取数据的回调函数
     void HandleRead(const boost::system::error_code& error, size_t bytes_transferred, shared_ptr<Session> _self_shared);

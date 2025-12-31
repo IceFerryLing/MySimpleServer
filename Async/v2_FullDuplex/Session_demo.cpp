@@ -1,6 +1,9 @@
 #include "Session_demo.h"
 #include "Server_demo.h"
 #include <iostream>
+#include <iomanip>
+
+
 using namespace std;
 
 #define HEAD_LENGTH 2
@@ -36,6 +39,14 @@ void Session::Send(char* msg, int length){
 
 void Session::HandleRead(const boost::system::error_code& error, 
     size_t bytes_transferred, shared_ptr<Session> _self_shared){
+    
+    //粘包测试
+    // if(!error){
+    //     PrintRecvData(_recv_buffer, bytes_transferred);
+    //     std::chrono::milliseconds dura(2000);
+    //     std::this_thread::sleep_for(dura);
+    // }
+
     if(!error){
         //已经成功读取数据长度
         int copy_len = 0;
@@ -158,6 +169,19 @@ void Session::HandleWrite(const boost::system::error_code& error,
         cerr << "Write error: " << error.message() << endl;
         _server->ClearSession(_uuid);
     }
+}
+
+// 打印接收到的数据的十六进制表示（用于粘包测试）
+void Session::PrintRecvData(char* data, int length){
+    stringstream ss;
+    string result = "0x";
+    for (int i = 0; i < length; i++){
+        string hexstr;
+        ss << hex << std::setw(2) << std::setfill('0') << (static_cast<int>(static_cast<unsigned char>(data[i])));
+        ss >> hexstr;
+        result += hexstr;  
+    }
+    cout << "Received data in hex: " << result << endl;
 }
 
 

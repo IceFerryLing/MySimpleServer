@@ -17,23 +17,24 @@ int main() {
         // 创建客户端
         AsyncClient client(ioc, "127.0.0.1", 10086);
 
-        // 启动IO线程
+        // 启动IO线程 (负责接收和异步发送)
         thread t([&ioc]() {
             ioc.run();
         });
 
-        // 主线程处理输入
-        std::cout << "Enter message: ";
-        while (true) {
-            char request[1024];
-            std::cin.getline(request, 1024);
-            if (strcmp(request, "quit") == 0) break;
-            
-            client.Send(request);
-        }
+        // 启动发送线程 (模拟高频发送)
+        // 依照模版：每2ms发送一次 "hello world!"
+        thread send_thread([&client]() {
+            while (true) {
+                this_thread::sleep_for(std::chrono::milliseconds(2));
+                client.Send("hello world!");
+            }
+        });
 
-        client.Close();
+        // 主线程等待
         t.join();
+        send_thread.join();
+        
         WSACleanup();
     }
     catch (std::exception& e) {
