@@ -28,6 +28,42 @@ AsyncClient/
     - 解决了 TCP 粘包问题。
     - 与服务器端的 `MsgNode` 协议保持一致。
 
+## 调用关系图解
+
+```mermaid
+sequenceDiagram
+    participant User as Main Thread (User Input)
+    participant Client as AsyncClient
+    participant IO as IO Thread (io_context)
+    participant Socket as tcp::socket
+
+    Note over User, IO: 1. 初始化与连接
+    User->>Client: AsyncClient(host, port)
+    Client->>Socket: async_connect
+    User->>IO: thread t([&]{ ioc.run(); })
+    IO->>Socket: Connect Complete
+    Socket-->>Client: Callback (do_connect)
+    Client->>Socket: async_read (Header)
+
+    Note over User, IO: 2. 发送消息 (线程安全)
+    User->>Client: Send("Hello")
+    Client->>IO: post(Task)
+    Note right of Client: 切换到 IO 线程执行
+    IO->>Client: Task Execution
+    Client->>Client: Push to Queue
+    
+    alt Queue was empty
+        Client->>Socket: async_write
+    end
+
+    Note over IO, Socket: 3. 接收消息 (循环)
+    Socket-->>Client: Read Header Complete
+    Client->>Socket: async_read (Body)
+    Socket-->>Client: Read Body Complete
+    Client->>User: Print Reply
+    Client->>Socket: async_read (Next Header)
+```
+
 ## 关键代码解析
 
 ### 1. 线程安全的发送 (Send)
