@@ -9,6 +9,8 @@ using namespace std;
 class Session;
 
 class MsgNode{
+    // 允许 Session 类访问私有成员
+    friend class Session;
 public:
     // 构造函数：深拷贝数据到内部缓冲区
     // msg: 待发送的数据
@@ -21,8 +23,7 @@ public:
 
     ~MsgNode();
     
-    // 允许 Session 类访问私有成员
-    friend class Session;
+    void Clear();
 
 private:
     int _total_len; // 消息总长度

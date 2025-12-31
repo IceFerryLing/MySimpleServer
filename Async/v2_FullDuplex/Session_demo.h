@@ -54,5 +54,11 @@ private:
     // 发送消息队列和互斥锁
     std::queue<std::shared_ptr<MsgNode>> _send_queue;
     std::mutex _send_lock;
+
+    // 接收消息结构
+    std::shared_ptr<MsgNode> _recv_msg_node;
+    bool _b_head_parsed = false; // 是否已解析消息头
+    // 消息头结构
+    std::shared_ptr<MsgNode> _recv_head_node;
 };
 
