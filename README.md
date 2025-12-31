@@ -4,11 +4,18 @@
 
 > 📺 **配套视频教程**: [C++ 网络编程 (Bilibili)](https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623216&spm_id_from=333.788.0.0)
 
-## 🚧 项目状态
+## 🏗️ 项目状态 (Project Status)
 **开发中 (Work In Progress)**
 目前已完成同步服务器和基础异步服务器的实现，正在进行架构优化和功能扩展。
 
-## 📂 目录结构说明
+## ⏱️ 学习进度 (Current Progress)
+- **当前章节**: [C++ 网络编程(9) 字节序处理和发送队列控制](https://www.bilibili.com/video/BV1tF411h7r6)
+- **已掌握知识点**:
+    - 发送队列 (`std::queue`) 保证异步写操作的串行化。
+    - 消息节点 (`MsgNode`) 管理数据生命周期。
+    - 解决 TCP 粘包问题 (Header + Body 协议).
+
+## 🗂️ 目录结构说明 (Directory Structure)
 
 ```text
 asio-network-study/
@@ -33,6 +40,10 @@ asio-network-study/
 │   │   ├── Server_demo.h       # 服务器类声明
 │   │   ├── Session_demo.cpp    # 会话类实现 (读写分离)
 │   │   └── Session_demo.h      # 会话类声明
+│   ├── AsyncClient/            # 异步客户端实现
+│   │   ├── main.cpp            # 客户端入口 (含发送线程)
+│   │   ├── AsyncClient.cpp     # 客户端核心类实现
+│   │   └── AsyncClient.h       # 客户端核心类声明
 │   └── README.md               # Async 模块总说明
 ├── pre_learn/                  # 基础概念验证与代码片段
 │   ├── endpoint/               # 端点与缓冲区
@@ -61,23 +72,24 @@ asio-network-study/
 - 基于 Boost.Asio 的 Proactor 模式实现。
 - **[v1_Simple](Async/v1_Simple/)**: 简单的半双工实现（存在缺陷，仅供反面教材）。
 - **[v2_FullDuplex](Async/v2_FullDuplex/)**: 全双工、带发送队列的健壮实现（推荐参考）。
+- **[AsyncClient](Async/AsyncClient/)**: 异步客户端，支持多线程发送和接收。
 
 ### 3. [pre_learn/](pre_learn/) - 基础概念验证
 - 包含 Endpoint、Buffer 等基础知识的小型测试代码。
 
-## 🛠️ 开发环境
+## 💻 开发环境 (Environment)
 - **系统**: Windows
 - **编译器**: MinGW-w64 g++ (C++20)
 - **依赖库**: Boost (Header-only + System/Thread/Context)
 - **工具**: VS Code
 
-## 🚀 如何运行
+## ▶️ 如何运行 (How to Run)
 本项目配置了 VS Code 的 `tasks.json`。
 1. 打开任意 `.cpp` 文件（如 `Async/v2_FullDuplex/AsyncServer.cpp`）。
 2. 按下 `Ctrl + Shift + B` 运行构建任务。
 3. 在终端运行生成的 `.exe` 文件。
 
-## 🌟 学习重点 (Key Takeaways)
+## 🧠 学习重点 (Key Takeaways)
 
 ### 1. 内存与生命周期管理
 - **智能指针**: 在异步编程中，回调函数执行时对象必须存活。通过 `std::shared_ptr` 和 `std::enable_shared_from_this` (伪闭包技术)，确保 `Session` 对象在所有异步操作完成前不被销毁。
@@ -92,45 +104,5 @@ asio-network-study/
 - **全双工通信**: 读写分离。接收循环 (`HandleRead`) 和发送循环 (`HandleWrite`) 独立运行，互不阻塞。
 
 ### 4. Boost.Asio 最佳实践
-- **串行化写**: 同一个 Socket 不能并发调用 `async_write`。必须使用 **发送队列** (`std::queue`) + **互斥锁** (`std::mutex`) 来串行化发送请求。
-- **IO Context**: 理解 `io_context` 作为任务调度器的核心作用，以及 `run()` 循环的机制。
-
-## 💡 学习总结 (Summary)
-
-从同步到异步的跨越，本质上是思维模式的转变：从 **"等待操作完成"** 转变为 **"发起操作并注册回调"**。
-
-1.  **v1 版本**教会了我们异步的基本写法，但也暴露了半双工逻辑在复杂场景下的脆弱性（如死锁、响应延迟）。
-2.  **v2 版本**通过引入**发送队列**和**消息协议**，解决了实际工程中最棘手的两个问题：**并发写冲突**和**TCP粘包**。这是迈向生产级代码的关键一步。
-3.  **AsyncClient** 的实现则展示了如何在客户端也应用同样的异步思想，实现高效的全双工交互。
-
-掌握这些模式后，你不仅能熟练使用 Boost.Asio，更能深入理解高性能网络服务器的底层架构原理（如 Nginx, Node.js 的事件循环）。
-
-## 📝 待办事项 (Todo)
-- [x] Socket 的监听和连接
-- [x] Buffer 结构和同步读写
-- [x] 同步读写 Server 和 Client 示例
-- [x] 异步读写 API 介绍和使用
-- [x] 官方案例异步 Server 及隐患
-- [x] 利用伪闭包延长连接的生命周期
-- [x] 增加发送队列实现全双工通信
-- [ ] 处理粘包问题
-- [ ] 字节序处理和发送队列控制
-- [ ] 采用 Protobuf 序列化
-- [ ] 采用 Json 序列化
-- [ ] Asio 粘包处理的简单方式
-- [ ] 逻辑层架构概述
-- [ ] 利用单例逻辑实现逻辑类
-- [ ] 服务器优雅退出
-- [ ] Asio 多线程模型 IOServicePool
-- [ ] Asio 另一种多线程模型 IOThread
-- [ ] 使用 Asio 协程搭建异步服务器
-- [ ] 利用协程实现并发服务器 (上/下)
-- [ ] Asio 实现 HTTP 服务器
-- [ ] Beast 网络库实现 HTTP 服务器
-- [ ] Beast 网络库实现 WebSocket 服务器
-- [ ] Windows 环境下 gRPC 配置和编译
-- [ ] 利用 gRPC 通信
-- [ ] 数据库连接池
-
----
-*最后更新: 2025-12-31*
+- **IO Context**: 核心调度器。通常一个程序一个 `io_context`，或者使用 `io_context` 线程池。
+- **Strand**: 虽然本项目暂未使用，但在多线程操作同一个 socket 时，`strand` 是保证线程安全的重要工具（本项目通过队列+单IO线程保证安全）。
