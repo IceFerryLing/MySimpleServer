@@ -106,3 +106,15 @@ asio-network-study/
 ### 4. Boost.Asio 最佳实践
 - **IO Context**: 核心调度器。通常一个程序一个 `io_context`，或者使用 `io_context` 线程池。
 - **Strand**: 虽然本项目暂未使用，但在多线程操作同一个 socket 时，`strand` 是保证线程安全的重要工具（本项目通过队列+单IO线程保证安全）。
+
+## ✅ 待办事项 (To-Do List)
+- [x] **同步服务器**: 基础 Echo Server
+- [x] **异步服务器 (v1)**: 基础收发
+- [x] **异步服务器 (v2)**: 
+- [x] **解决粘包** (MsgNode + 协议头)
+- [x] **发送队列** (解决 async_write 并发问题)
+- [x] **字节序处理**
+- [x] **异步客户端**: 支持多线程收发
+- [ ] **序列化**: 集成 Protobuf
+- [ ] **逻辑层**: 封装 LogicSystem 处理业务逻辑
+- [ ] **数据库**: 集成 MySQL/Redis (不会，先挖一个坑)
