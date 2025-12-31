@@ -78,23 +78,23 @@
 
 ```mermaid
 graph TD
-    Start[HandleRead 回调触发] --> CheckError{是否有错误?}
+    Start[HandleRead 回调触发] --> CheckError{"是否有错误?"}
     CheckError -- Yes --> Close[关闭会话]
     CheckError -- No --> Loop[循环处理 bytes_transferred]
     
-    Loop --> StateCheck{_b_head_parsed?}
+    Loop --> StateCheck{"_b_head_parsed?"}
     
     %% 状态1：解析头部
-    StateCheck -- False (读头部) --> HeadCheck{接收数据 + 已读头部 < HEAD_LEN?}
+    StateCheck -- False (读头部) --> HeadCheck{"接收数据 + 已读头部 < HEAD_LEN?"}
     HeadCheck -- Yes (头部未满) --> CopyHeadPart[拷贝数据到 _recv_head_node]
     CopyHeadPart --> ContinueRead[继续 async_read]
     
     HeadCheck -- No (头部已满) --> ParseHead[拷贝头部剩余部分 & 解析数据长度 data_len]
-    ParseHead --> LenCheck{data_len > MAX_LEN?}
+    ParseHead --> LenCheck{"data_len > MAX_LEN?"}
     LenCheck -- Yes --> Close
     LenCheck -- No --> AllocBody["创建 _recv_msg_node(data_len)"]
     
-    AllocBody --> BodyCheck{剩余数据 < data_len?}
+    AllocBody --> BodyCheck{"剩余数据 < data_len?"}
     BodyCheck -- Yes (体未满) --> CopyBodyPart[拷贝剩余数据到 _recv_msg_node]
     CopyBodyPart --> SetFlag[设 _b_head_parsed = true]
     SetFlag --> ContinueRead
@@ -102,12 +102,12 @@ graph TD
     BodyCheck -- No (体已满) --> CopyBodyFull[拷贝 data_len 长度数据]
     CopyBodyFull --> ProcessMsg["处理消息 (Send)"]
     ProcessMsg --> ResetHead[重置 _b_head_parsed = false, 清空 _recv_head_node]
-    ResetHead --> LoopEnd{还有剩余数据?}
+    ResetHead --> LoopEnd{"还有剩余数据?"}
     LoopEnd -- Yes --> Loop
     LoopEnd -- No --> ContinueRead
 
     %% 状态2：解析包体
-    StateCheck -- True (读包体) --> RemainCheck{接收数据 < 剩余包体长度?}
+    StateCheck -- True (读包体) --> RemainCheck{"接收数据 < 剩余包体长度?"}
     RemainCheck -- Yes (体未满) --> CopyBodyPart2[拷贝数据到 _recv_msg_node]
     CopyBodyPart2 --> ContinueRead
     
