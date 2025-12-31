@@ -68,3 +68,46 @@ g++ -o AsyncClient.exe main.cpp AsyncClient.cpp -lws2_32 -lboost_system -std=c++
     ```
 3.  在控制台输入消息并回车，查看服务器回显。
 4.  输入 `quit` 退出。
+
+## 调用关系图解 (Call Flow)
+
+以下时序图展示了主线程（用户输入）与 IO 线程（网络处理）之间的交互：
+
+```mermaid
+sequenceDiagram
+    participant Main as Main Thread
+    participant IO as IO Thread (io_context)
+    participant Client as AsyncClient
+    participant Socket as tcp::socket
+
+    Note over Main, IO: 1. 初始化与连接
+    Main->>Client: AsyncClient()
+    Client->>Socket: async_connect
+    Main->>IO: thread(ioc.run)
+    
+    IO-->>Client: Handle Connect (回调)
+    Client->>Socket: async_read (Header)
+
+    Note over Main, IO: 2. 数据发送 (Send)
+    Main->>Client: Send(msg)
+    Client->>IO: post(Task)
+    Note right of Client: 切换到 IO 线程以保证安全
+    IO-->>Client: Execute Task
+    Client->>Client: Push Queue
+    
+    alt Queue was Empty
+        Client->>Socket: async_write
+    end
+
+    IO-->>Client: Handle Write (回调)
+    Client->>Client: Pop Queue
+    opt Queue not Empty
+        Client->>Socket: async_write
+    end
+
+    Note over Main, IO: 3. 数据接收 (Receive)
+    IO-->>Client: Handle Read Header (回调)
+    Client->>Socket: async_read (Body)
+    IO-->>Client: Handle Read Body (回调)
+    Client->>Socket: async_read (Header)
+```
