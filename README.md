@@ -137,3 +137,10 @@ asio-network-study/
 - [ ] **C++20 协程**: 使用 Coroutines 简化异步代码 (Co_await)。
 - [ ] **Beast 网络库**: 实现高性能 HTTP/WebSocket 服务器。
 - [ ] **RPC 框架**: 集成 gRPC 进行微服务通信。
+
+### 🔵 扩展阶段：前端交互与可视化 (Web Integration)
+- [ ] **Web 服务器基础**: 引入 `Boost.Beast` 库。
+- [ ] **WebSocket 通信**: 实现全双工实时通信。
+- [ ] **前端界面**: HTML/CSS/JS 可视化客户端。
+
+> 🔗 **详细规划请见**: [项目全景路线图 (ROADMAP.md)](ROADMAP.md)
