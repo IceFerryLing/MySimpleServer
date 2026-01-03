@@ -19,7 +19,7 @@
         - **字节序**: 处理 Big-Endian / Little-Endian 转换。
 
 ### 📚 知识点回顾
-> 🔗 **详细总结**: [第一阶段总结：基础网络通信与 Modern C++ (Summaries/Phase1_Summary.md)](Summaries/Phase1_Summary.md)
+> 🔗 **详细总结**: [第一阶段总结：基础网络通信与 Modern C++ (Phase1_Summary.md)](Phase1_Summary.md)
 
 - [x] **TCP 协议**: 三次握手，流式传输，MSS/MTU。
 - [x] **Boost.Asio**: `io_context`, `socket`, `endpoint`, `buffer`。
