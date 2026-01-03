@@ -54,6 +54,9 @@ asio-network-study/
 │       ├── README.md
 │       ├── Session.cpp
 │       └── Session.h
+├── Summaries/                  # 学习总结与规划
+│   ├── Phase1_Summary.md       # 第一阶段总结
+│   └── ROADMAP.md              # 学习路线图
 ├── Sync/                       # 同步阻塞模型 (Thread-Per-Connection)
 │   ├── README.md               # Sync 模块说明
 │   ├── SyncClient.cpp          # 同步客户端
@@ -143,4 +146,4 @@ asio-network-study/
 - [ ] **WebSocket 通信**: 实现全双工实时通信。
 - [ ] **前端界面**: HTML/CSS/JS 可视化客户端。
 
-> 🔗 **详细规划请见**: [项目全景路线图 (ROADMAP.md)](ROADMAP.md)
+> 🔗 **详细规划请见**: [项目全景路线图 (ROADMAP.md)](Summaries/ROADMAP.md)
