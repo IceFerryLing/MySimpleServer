@@ -16,6 +16,12 @@ void Session::Start(){
         std::bind(&Session::HandleRead, this, placeholders::_1, placeholders::_2, shared_from_this()));
 }
 
+void Session::Start(){
+    _recv_head_node = make_shared<MsgNode>(HEAD_LENGTH);
+    boost::asio::async_read(_socket, boost::asio::buffer(_recv_head_node->_msg, HEAD_LENGTH),
+        std::bind(&Session::HandleReadHead, this, placeholders::_1, placeholders::_2, shared_from_this()));
+}
+
 void Session::Close(){
     _socket.close();
     _b_closed = true;
@@ -166,30 +172,48 @@ void Session::HandleReadHead(const boost::system::error_code& error,
             _server->ClearSession(_uuid);
             return;
         }
-    }
-    //头部收全，解析头部获取消息长度
-    short data_len = 0;
-    memcpy(&data_len, _recv_head_node->_msg, HEAD_LENGTH);
-    cout << "data len is " << data_len << endl;
+
+        //头部收全，解析头部获取消息长度
+        short data_len = 0;
+        memcpy(&data_len, _recv_head_node->_msg, HEAD_LENGTH);
+        cout << "data len is " << data_len << endl;
     
-    //头部不合法的情况下
-    if (data_len > MAX_LENGTH){
-        // 消息长度超过最大限制，关闭会话
-        cerr << "Message length exceeds maximum limit: " << data_len << endl;
+        //头部不合法的情况下
+        if (data_len > MAX_LENGTH){
+            // 消息长度超过最大限制，关闭会话
+            cerr << "Message length exceeds maximum limit: " << data_len << endl;
+            Close();
+            _server->ClearSession(_uuid);
+            return;
+        }
+
+        _recv_msg_node = make_shared<MsgNode>(data_len);
+        boost::asio::async_read(_socket, boost::asio::buffer(_recv_msg_node->_msg, 
+            _recv_msg_node->_total_len), std::bind(&Session::HandleRead, this, 
+            placeholders::_1, placeholders::_2, _self_shared));
+    }else{
+        cerr << "Read head error: " << error.message() << endl;
         Close();
         _server->ClearSession(_uuid);
-        return;
     }
+}
 
-    _recv_msg_node = make_shared<MsgNode>(data_len);
-    //开始读取消息体
-    //参数_socket用于指定读取的socket，buffer用于指定存放读取数据的缓冲区
-    //HandleRead()是读取完成后的回调函数,作用是处理读取到的数据
-    //this指针用于绑定回调函数的成员函数,作用是指定回调函数属于哪个对象
-    //shared_from_this()用于在异步操作完成后继续保持对当前Session对象的引用，防止其在异步操作期间被销毁
-    boost::asio::async_read(_socket, boost::asio::buffer(_recv_msg_node->_msg, 
-        _recv_msg_node->_total_len), std::bind(&Session::HandleRead, this, 
-        placeholders::_1, placeholders::_2, _self_shared));
+void Session::HandleReadMsg(const boost::system::error_code& error, 
+    size_t bytes_transferred, shared_ptr<Session> _self_shared){
+    if(!error){
+        //模拟处理数据的耗时操作
+        //PrintRecvData(_recv_msg_node->_msg, bytes_transferred);
+        //std::chrono::milliseconds dura(2000);
+        //std::this_thread::sleep_for(dura);
+        _recv_msg_node->_msg[_recv_msg_node->_cur_len] = '\0';
+        std::cout << "Received data is " << _recv_msg_node->_msg << endl;
+        //回显数据  
+        Send(_recv_msg_node->_msg, _recv_msg_node->_cur_len);
+        //准备读取下一个消息头
+        _recv_head_node->Clear();
+        boost::asio::async_read(_socket, boost::asio::buffer(_recv_head_node->_msg, HEAD_LENGTH),
+            std::bind(&Session::HandleReadHead, this, placeholders::_1, placeholders::_2, _self_shared));
+    }
 }
 
 void Session::HandleWrite(const boost::system::error_code& error, 

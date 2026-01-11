@@ -45,7 +45,7 @@ public:
 private:
     //处理读取头部的回调函数
     void HandleReadHead(const boost::system::error_code& error, size_t bytes_transferred, shared_ptr<Session> _self_shared);
-    //
+    //处理读取消息体的回调函数
     void HandleReadMsg(const boost::system::error_code& error, size_t bytes_transferred, shared_ptr<Session> _self_shared);
     //处理读取数据的回调函数
     void HandleRead(const boost::system::error_code& error, size_t bytes_transferred, shared_ptr<Session> _self_shared);
