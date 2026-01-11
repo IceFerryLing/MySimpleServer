@@ -1,3 +1,4 @@
+
 # Async Server 全双工通信实现 (v2_FullDuplex)
 
 本目录包含了一个基于 Boost.Asio 的全双工异步 TCP 服务器实现。相比于 v1 版本，v2 版本引入了完善的消息协议（头部+包体）和发送队列，解决了 TCP 粘包/半包问题以及多线程并发发送的安全问题。
@@ -118,6 +119,46 @@ graph TD
 ```
 
 **详细步骤：**
+
+---
+
+### 4.1.1 HandleReadHead 与 HandleReadMsg 说明
+
+在采用“包头+包体”协议时，推荐将异步读取分为两步：
+
+- `HandleReadHead(const boost::system::error_code& error, size_t bytes_transferred, shared_ptr<Session> _self_shared)`
+    - 负责异步读取消息头部后的处理。
+    - 检查 error 和 bytes_transferred，确保头部收全。
+    - 解析头部，获取消息体长度（data_len），校验合法性。
+    - 分配消息体缓冲区，启动 async_read 读取消息体，回调 `HandleReadMsg`。
+
+- `HandleReadMsg(const boost::system::error_code& error, size_t bytes_transferred, shared_ptr<Session> _self_shared)`
+    - 负责异步读取消息体后的处理。
+    - 检查 error，处理完整消息体（如打印、回显、业务逻辑等）。
+    - 清理状态，准备读取下一个消息头（再次 async_read 头部，回调 `HandleReadHead`）。
+
+
+这种“先读头，再读体”的异步收包方式，能有效应对定长包协议，简化粘包/半包处理。
+
+---
+
+### 4.1.2 与 HandleRead（单函数状态机）方式的对比
+
+#### HandleRead（单函数状态机）
+- 采用一个函数（HandleRead）配合状态变量（如 `_b_head_parsed`）来处理包头和包体。
+- 每次 `async_read_some` 读取到数据后，循环判断当前是处理头部还是包体，手动切换状态、分配缓冲、处理粘包/半包。
+- **优点**：灵活，能处理复杂的粘包、半包、多包等情况。
+- **缺点**：代码复杂，状态切换和数据拷贝逻辑较多，维护难度大。
+
+#### HandleReadHead + HandleReadMsg（分步回调）
+- 明确分为两个回调函数：`HandleReadHead` 只负责读取和解析包头，`HandleReadMsg` 只负责读取和处理包体。
+- 头部收全后直接进入包体读取，包体收全后再回到头部读取，流程清晰。
+- **优点**：结构清楚，逻辑分明，易于维护，适合定长包协议。
+- **缺点**：灵活性略低，若协议极为复杂（如变长头、嵌套包等）需适当扩展。
+
+> 总结：
+> - `HandleRead`（单函数状态机）适合需要极致灵活、能处理各种粘包/半包/多包场景的复杂协议。
+> - `HandleReadHead` + `HandleReadMsg`（分步回调）适合典型的“包头+包体”定长协议，代码更易读、易维护。
 
 1.  **头部解析阶段 (`!_b_head_parsed`)**
     *   **目标**：凑齐 `HEAD_LENGTH` (2字节) 的头部数据。
