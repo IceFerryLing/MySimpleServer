@@ -260,4 +260,26 @@ sequenceDiagram
     Session->>Server: ClearSession(uuid)
     Server->>Server: _sessions.erase(uuid)
     Note right of Session: Session 引用计数归零，析构
+
+---
+
+
+## 6. 近期代码变更
+
+- 客户端（AsyncClient）已整体重构为异步多线程模型，采用分步回调收发、线程安全队列，消息协议与服务端完全一致，支持高频安全发送与回显。
+- 消息体格式升级为 JSON 序列化，所有业务数据均以 JSON 字符串形式封装。例如：
+    ```json
+    {
+        "cmd": "echo",
+        "data": "hello world!",
+        "timestamp": 1700000000
+    }
+    ```
+- 这样便于客户端与服务端进行结构化数据交互，协议扩展更灵活。
+- 服务端需同步支持 JSON 解析，确保兼容性。
+
+- 新增 `HandleReadHead` 和 `HandleReadMsg` 两个分步回调函数，实现“先读头，再读体”的定长包协议异步收包方案，逻辑更清晰，易维护。
+- Session 类相关成员变量和接口已同步调整，具体见头文件和实现。
+- README 已补充分步回调方案说明，并与原有单函数状态机方案做了详细对比。
+- 推荐优先采用分步回调方案处理定长包协议，复杂协议可参考状态机方式。
 ```

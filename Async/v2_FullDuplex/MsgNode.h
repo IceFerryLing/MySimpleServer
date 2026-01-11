@@ -1,8 +1,8 @@
-#pragma once
+#pragma
 #include <cstring>
 #include <iostream>
 #include <boost/asio.hpp>
-
+#include "const.h"
 using namespace std;
 
 // 前向声明 Session 类，因为它是 friend
@@ -25,8 +25,24 @@ public:
     
     void Clear();
 
-private:
+public:
     int _total_len; // 消息总长度
     int _cur_len;   // 当前已发送长度
     char* _msg;    // 消息数据缓冲区
+};
+
+// 接收消息节点，继承自 MsgNode
+class RecvNode:public MsgNode{
+public:
+    RecvNode(short max_len, short msg_id);
+private:
+    short _msg_id;
+};
+
+// 发送消息节点，继承自 MsgNode
+class SendNode:public MsgNode{
+public:
+    SendNode(const char* msg, short max_len, short msg_id);
+private:
+    short _msg_id;
 };

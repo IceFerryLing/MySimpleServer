@@ -2,23 +2,21 @@
 #include "Server_demo.h"
 #include <iostream>
 #include <iomanip>
-
+#include "json/json.h"
+#include "const.h"
 
 using namespace std;
 
-#define HEAD_LENGTH 2
-#define MAX_LENGTH 1024*2
-
 void Session::Start(){
-    _recv_head_node = make_shared<MsgNode>(HEAD_LENGTH);
+    _recv_head_node = make_shared<MsgNode>(HEAD_TOTAL_LEN);
     memset(_recv_buffer, 0, MAX_LENGTH);
     _socket.async_read_some(boost::asio::buffer(_recv_buffer, MAX_LENGTH),
         std::bind(&Session::HandleRead, this, placeholders::_1, placeholders::_2, shared_from_this()));
 }
 
 void Session::Start(){
-    _recv_head_node = make_shared<MsgNode>(HEAD_LENGTH);
-    boost::asio::async_read(_socket, boost::asio::buffer(_recv_head_node->_msg, HEAD_LENGTH),
+    _recv_head_node = make_shared<MsgNode>(HEAD_TOTAL_LEN);
+    boost::asio::async_read(_socket, boost::asio::buffer(_recv_head_node->_msg, HEAD_TOTAL_LEN),
         std::bind(&Session::HandleReadHead, this, placeholders::_1, placeholders::_2, shared_from_this()));
 }
 
@@ -31,15 +29,32 @@ std::string& Session::GetUuid(){
     return _uuid;
 }
 
-void Session::Send(char* msg, int length){
-    bool pending = false;// 是否有未完成的发送操作
+void Session::Send(std::string msg, short msg_id){
+    int send_que_size = _send_queue.size();
     std::lock_guard<std::mutex> lock(_send_lock);
-    if(!_send_queue.empty()){
-        pending = true;
+    if (send_que_size >= MAX_SENDQUE){
+        std::cout << "Send queue full, dropping message" << std::endl;
+        return;
+    }
+    _send_queue.push(std::make_shared<SendNode>(msg, msg.length(), msg_id));
+    if(send_que_size > 0){
+        return;
     }
 
-    _send_queue.push(std::make_shared<MsgNode>(msg, length));
-    if(pending){
+    auto& msgnode = _send_queue.front();
+    boost::asio::async_write(_socket, boost::asio::buffer(msgnode->_msg, msgnode->_total_len), 
+        std::bind(&Session::HandleWrite, this, placeholders::_1, shared_from_this()));
+}
+
+void Session::Send(char* msg, int length){
+    int send_que_size = _send_queue.size();
+    std::lock_guard<std::mutex> lock(_send_lock);
+    if (send_que_size >= MAX_SENDQUE){
+        std::cout << "Send queue full, dropping message" << std::endl;
+        return;
+    }
+    _send_queue.push(std::make_shared<SendNode>(msg, length));
+    if(send_que_size > 0){
         return;
     }
 
@@ -63,7 +78,7 @@ void Session::HandleRead(const boost::system::error_code& error,
         while(bytes_transferred > 0){
             if (!_b_head_parsed){
                 //收到的消息不足一个头的长度，继续读取
-                if(bytes_transferred + _recv_head_node->_cur_len < HEAD_LENGTH){
+                if(bytes_transferred + _recv_head_node->_cur_len < HEAD_TOTAL_LEN){
                     memcpy(_recv_head_node->_msg + _recv_head_node->_cur_len, _recv_buffer + copy_len, bytes_transferred);
                     _recv_head_node->_cur_len += bytes_transferred;
                     memset(_recv_buffer, 0, MAX_LENGTH);
@@ -73,13 +88,29 @@ void Session::HandleRead(const boost::system::error_code& error,
                 }
 
                 //收到的数据足够一个头的长度
-                int head_remain = HEAD_LENGTH - _recv_head_node->_cur_len;
+                //头部剩余为复制的data，和未处理的数据
+                int head_remain = HEAD_TOTAL_LEN - _recv_head_node->_cur_len;
                 memcpy(_recv_head_node->_msg + _recv_head_node->_cur_len, _recv_buffer + copy_len, head_remain);
+                //更新复制位置和剩余未处理数据长度
                 copy_len += head_remain;
                 bytes_transferred -= head_remain;
-                //获取头部数据
+                //解析头部获取消息ID和长度
+                short msg_id = 0;
+                memcpy(&msg_id, _recv_head_node->_msg, HEAD_ID_LEN);
+                std::cout << " Parsed message ID: " << msg_id << endl;
+                //网络字节序转换为主机字节序
+                msg_id = boost::asio::detail::socket_ops::network_to_host_short(msg_id);
+                cout << "Converted message ID: " << msg_id << endl;
+                //id 
+                if (msg_id > MAX_LENGTH){
+                    // 消息ID超过最大限制，关闭会话
+                    cerr << "Message ID exceeds maximum limit: " << msg_id << endl;
+                    _server->ClearSession(_uuid);
+                    return;
+                }
+                //获取头部解析消息长度
                 short data_len = 0;
-                memcpy(&data_len, _recv_head_node->_msg, HEAD_LENGTH);
+                memcpy(&data_len, _recv_head_node->_msg + HEAD_ID_LEN, HEAD_DATA_LEN);
                 std::cout << "Parsed message length: " << data_len << endl;
                 
                 if (data_len > MAX_LENGTH){
@@ -89,9 +120,9 @@ void Session::HandleRead(const boost::system::error_code& error,
                     return;
                 }
 
-                _recv_msg_node = make_shared<MsgNode>(data_len);
+                _recv_msg_node = make_shared<RecvNode>(data_len, msg_id);
+                //剩余数据不足一个消息体，继续读取,将部分先放到消息体中
                 if (bytes_transferred < data_len){
-                    //剩余数据不足一个消息体，继续读取
                     memcpy(_recv_msg_node->_msg + _recv_msg_node->_cur_len, _recv_buffer + copy_len, bytes_transferred);
                     _recv_msg_node->_cur_len += bytes_transferred;
 
@@ -112,7 +143,14 @@ void Session::HandleRead(const boost::system::error_code& error,
                 //头部处理完成
                 std::cout << "Received from client: " << _socket.remote_endpoint().address().to_string() << std::endl;
                 std::cout << "Received data: " << _recv_msg_node->_msg << std::endl;
-                Send(_recv_msg_node->_msg, _recv_msg_node->_cur_len);
+                Json::Reader reader;
+                Json::Value root;
+                reader.parse(std::string(_recv_msg_node->_msg), root);
+                std::cout << "received json data: " << root["id"].asInt()<< ", " 
+                        << root["name"].asString() << ", "
+                        << root["value"].asDouble() << std::endl;
+                std::string return_str = root.toStyledString();
+                Send(return_str.c_str(), return_str.size());
                 //继续轮询剩余数据
                 _b_head_parsed = false;
                 _recv_head_node->Clear();
@@ -120,7 +158,7 @@ void Session::HandleRead(const boost::system::error_code& error,
                 if(bytes_transferred <= 0){
                     ::memset(_recv_buffer, 0, MAX_LENGTH);
                     _socket.async_read_some(boost::asio::buffer(_recv_buffer, MAX_LENGTH),
-                        std::bind(&Session::HandleRead, this, placeholders::_1, placeholders::_2, _self_shared));
+                        std::bind(&Session::HandleRead, this, std::placeholders::_1, std::placeholders::_2, _self_shared));
                     return;
                 }
                 continue;
@@ -128,7 +166,7 @@ void Session::HandleRead(const boost::system::error_code& error,
             
             //已经处理完头部，处理上次未接受完的消息数据
             //接收的数据仍不足剩余未处理的
-            int remain_msg = _recv_msg_node->_total_len - HEAD_LENGTH - _recv_msg_node->_cur_len;
+            int remain_msg = _recv_msg_node->_total_len - _recv_msg_node->_cur_len;
             if (bytes_transferred < remain_msg) {
                 memcpy(_recv_msg_node->_msg + _recv_msg_node->_cur_len, _recv_buffer + copy_len, bytes_transferred);
                 _recv_msg_node->_cur_len += bytes_transferred;
@@ -144,8 +182,14 @@ void Session::HandleRead(const boost::system::error_code& error,
             copy_len += remain_msg;
             _recv_msg_node->_msg[_recv_msg_node->_cur_len] = '\0';
             std::cout << "receive data is " << _recv_msg_node->_msg << endl;
-            //此处可以调用Send发送测试
-            Send(_recv_msg_node->_msg, _recv_msg_node->_cur_len);
+            Json::Reader reader;
+            Json::Value root;
+            reader.parse(std::string(_recv_msg_node->_msg), root);
+            std::cout << "received json data: " << root["id"].asInt()<< ", " 
+                    << root["name"].asString() << ", "
+                    << root["value"].asDouble() << std::endl;
+            std::string return_str = root.toStyledString();
+            Send(return_str.c_str(), return_str.size());
             //继续轮询剩余未处理数据
             _b_head_parsed = false;
             _recv_head_node->Clear();
@@ -166,7 +210,7 @@ void Session::HandleRead(const boost::system::error_code& error,
 void Session::HandleReadHead(const boost::system::error_code& error, 
     size_t bytes_transferred, shared_ptr<Session> _self_shared){
     if(!error){
-        if(bytes_transferred < HEAD_LENGTH){
+        if(bytes_transferred < HEAD_TOTAL_LEN){
             cout << "read head length error";
             Close();
             _server->ClearSession(_uuid);
@@ -175,7 +219,7 @@ void Session::HandleReadHead(const boost::system::error_code& error,
 
         //头部收全，解析头部获取消息长度
         short data_len = 0;
-        memcpy(&data_len, _recv_head_node->_msg, HEAD_LENGTH);
+        memcpy(&data_len, _recv_head_node->_msg, HEAD_TOTAL_LEN);
         cout << "data len is " << data_len << endl;
     
         //头部不合法的情况下
@@ -211,8 +255,8 @@ void Session::HandleReadMsg(const boost::system::error_code& error,
         Send(_recv_msg_node->_msg, _recv_msg_node->_cur_len);
         //准备读取下一个消息头
         _recv_head_node->Clear();
-        boost::asio::async_read(_socket, boost::asio::buffer(_recv_head_node->_msg, HEAD_LENGTH),
-            std::bind(&Session::HandleReadHead, this, placeholders::_1, placeholders::_2, _self_shared));
+        boost::asio::async_read(_socket, boost::asio::buffer(_recv_head_node->_msg, HEAD_TOTAL_LEN),
+            std::bind(&Session::HandleReadHead, this, std::placeholders::_1, std::placeholders::_2, _self_shared));
     }
 }
 

@@ -30,7 +30,7 @@ public:
     //Start()方法用于启动会话，开始异步读取数据。
     void Start();
 
-    //
+    //Close()方法用于关闭会话，关闭与客户端的连接。
     void Close();
 
     //GetUuid()方法返回会话的唯一标识符UUID。
@@ -38,6 +38,9 @@ public:
 
     //Send()方法用于发送数据到客户端。
     void Send(char* msg, int length);
+
+    //Send()方法用于发送字符串数据到客户端。
+    void Send(std::string msg, short msg_id);
 
     //粘包测试
     void PrintRecvData(char* data, int length);
@@ -53,8 +56,6 @@ private:
     void HandleWrite(const boost::system::error_code& error, shared_ptr<Session> _self_shared);
     //Socket对象，表示与客户端的连接
     tcp::socket _socket;
-    //用于存储接收数据的缓冲区
-    enum{MAX_LENGTH = 1024};
     //接收数据缓冲区
     char _recv_buffer[MAX_LENGTH];
     //指向服务器对象的指针，用于管理会话
