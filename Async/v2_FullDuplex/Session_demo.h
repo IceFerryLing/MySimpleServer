@@ -30,6 +30,9 @@ public:
     //Start()方法用于启动会话，开始异步读取数据。
     void Start();
 
+    //
+    void Close();
+
     //GetUuid()方法返回会话的唯一标识符UUID。
     std::string& GetUuid();
 
@@ -40,6 +43,10 @@ public:
     void PrintRecvData(char* data, int length);
 
 private:
+    //处理读取头部的回调函数
+    void HandleReadHead(const boost::system::error_code& error, size_t bytes_transferred, shared_ptr<Session> _self_shared);
+    //
+    void HandleReadMsg(const boost::system::error_code& error, size_t bytes_transferred, shared_ptr<Session> _self_shared);
     //处理读取数据的回调函数
     void HandleRead(const boost::system::error_code& error, size_t bytes_transferred, shared_ptr<Session> _self_shared);
     //处理写入数据的回调函数
@@ -61,6 +68,7 @@ private:
     // 接收消息结构
     std::shared_ptr<MsgNode> _recv_msg_node;
     bool _b_head_parsed = false; // 是否已解析消息头
+    bool _b_closed = false;
     // 消息头结构
     std::shared_ptr<MsgNode> _recv_head_node;
 };

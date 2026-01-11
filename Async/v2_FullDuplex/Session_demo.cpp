@@ -16,6 +16,11 @@ void Session::Start(){
         std::bind(&Session::HandleRead, this, placeholders::_1, placeholders::_2, shared_from_this()));
 }
 
+void Session::Close(){
+    _socket.close();
+    _b_closed = true;
+}
+
 std::string& Session::GetUuid(){
     return _uuid;
 }
@@ -40,12 +45,11 @@ void Session::Send(char* msg, int length){
 void Session::HandleRead(const boost::system::error_code& error, 
     size_t bytes_transferred, shared_ptr<Session> _self_shared){
     
-    //粘包测试
-    // if(!error){
-    //     PrintRecvData(_recv_buffer, bytes_transferred);
-    //     std::chrono::milliseconds dura(2000);
-    //     std::this_thread::sleep_for(dura);
-    // }
+    if(!error){
+        PrintRecvData(_recv_buffer, bytes_transferred);
+        std::chrono::milliseconds dura(2000);
+        std::this_thread::sleep_for(dura);
+    }
 
     if(!error){
         //已经成功读取数据长度
@@ -70,7 +74,7 @@ void Session::HandleRead(const boost::system::error_code& error,
                 //获取头部数据
                 short data_len = 0;
                 memcpy(&data_len, _recv_head_node->_msg, HEAD_LENGTH);
-                cout << "Parsed message length: " << data_len << endl;
+                std::cout << "Parsed message length: " << data_len << endl;
                 
                 if (data_len > MAX_LENGTH){
                     // 消息长度超过最大限制，关闭会话
@@ -100,8 +104,8 @@ void Session::HandleRead(const boost::system::error_code& error,
                 bytes_transferred -= data_len;
                 _recv_msg_node->_msg[_recv_msg_node->_cur_len] = '\0';
                 //头部处理完成
-                cout << "Received from client: " << _socket.remote_endpoint().address().to_string() << endl;
-                cout << "Received data: " << _recv_msg_node->_msg << endl;
+                std::cout << "Received from client: " << _socket.remote_endpoint().address().to_string() << std::endl;
+                std::cout << "Received data: " << _recv_msg_node->_msg << std::endl;
                 Send(_recv_msg_node->_msg, _recv_msg_node->_cur_len);
                 //继续轮询剩余数据
                 _b_head_parsed = false;
@@ -133,7 +137,7 @@ void Session::HandleRead(const boost::system::error_code& error,
             bytes_transferred -= remain_msg;
             copy_len += remain_msg;
             _recv_msg_node->_msg[_recv_msg_node->_cur_len] = '\0';
-            cout << "receive data is " << _recv_msg_node->_msg << endl;
+            std::cout << "receive data is " << _recv_msg_node->_msg << endl;
             //此处可以调用Send发送测试
             Send(_recv_msg_node->_msg, _recv_msg_node->_cur_len);
             //继续轮询剩余未处理数据
@@ -153,6 +157,40 @@ void Session::HandleRead(const boost::system::error_code& error,
     }
 }
 
+void Session::HandleReadHead(const boost::system::error_code& error, 
+    size_t bytes_transferred, shared_ptr<Session> _self_shared){
+    if(!error){
+        if(bytes_transferred < HEAD_LENGTH){
+            cout << "read head length error";
+            Close();
+            _server->ClearSession(_uuid);
+            return;
+        }
+    }
+    //头部收全，解析头部获取消息长度
+    short data_len = 0;
+    memcpy(&data_len, _recv_head_node->_msg, HEAD_LENGTH);
+    cout << "data len is " << data_len << endl;
+    
+    //头部不合法的情况下
+    if (data_len > MAX_LENGTH){
+        // 消息长度超过最大限制，关闭会话
+        cerr << "Message length exceeds maximum limit: " << data_len << endl;
+        Close();
+        _server->ClearSession(_uuid);
+        return;
+    }
+
+    _recv_msg_node = make_shared<MsgNode>(data_len);
+    //开始读取消息体
+    //参数_socket用于指定读取的socket，buffer用于指定存放读取数据的缓冲区
+    //HandleRead()是读取完成后的回调函数,作用是处理读取到的数据
+    //this指针用于绑定回调函数的成员函数,作用是指定回调函数属于哪个对象
+    //shared_from_this()用于在异步操作完成后继续保持对当前Session对象的引用，防止其在异步操作期间被销毁
+    boost::asio::async_read(_socket, boost::asio::buffer(_recv_msg_node->_msg, 
+        _recv_msg_node->_total_len), std::bind(&Session::HandleRead, this, 
+        placeholders::_1, placeholders::_2, _self_shared));
+}
 
 void Session::HandleWrite(const boost::system::error_code& error, 
     shared_ptr<Session> _self_shared){
@@ -181,7 +219,7 @@ void Session::PrintRecvData(char* data, int length){
         ss >> hexstr;
         result += hexstr;  
     }
-    cout << "Received data in hex: " << result << endl;
+    std::cout << "Received data in hex: " << result << endl;
 }
 
 

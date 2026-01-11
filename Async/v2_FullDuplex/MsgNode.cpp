@@ -11,15 +11,17 @@ using namespace std;
 // total_len: 数据长度
 MsgNode::MsgNode(const char* msg, int total_len):_total_len(total_len + HEADE_LENGTH), _cur_len(0){
         _msg = new char[_total_len + 1];             // 多分配1字节存放'\0'
-        memcpy(_msg, &total_len, HEADE_LENGTH);      // 复制消息头   
-        memcpy(_msg + HEADE_LENGTH, msg, total_len); // 复制消息体
-        _msg[_total_len] = '\0';                     // 添加字符串结束符
+        //转换为网络字节序
+        int max_len_host = boost::asio::detail::socket_ops::host_to_network_short(total_len);
+        memcpy(_msg, &max_len_host, HEADE_LENGTH);      // 复制消息头   
+        memcpy(_msg + HEADE_LENGTH, msg, total_len);    // 复制消息体
+        _msg[_total_len] = '\0';                        // 添加字符串结束符
     }
 
 // 构造函数：分配指定长度的缓冲区
 // total_len: 缓冲区大小
 MsgNode::MsgNode(int total_len):_total_len(total_len + HEADE_LENGTH), _cur_len(0){
-        _msg = new char[_total_len + 1];             // 多分配1字节存放'\0'
+        _msg = new char[_total_len + 1];                 // 多分配1字节存放'\0'
     }
 
 
