@@ -30,3 +30,4 @@ private:
     char _recv_head[HEAD_LENGTH];
     vector<char> _recv_msg;
 };
+
