@@ -289,5 +289,3 @@ void Session::PrintRecvData(char* data, int length){
     }
     std::cout << "Received data in hex: " << result << endl;
 }
-
-
