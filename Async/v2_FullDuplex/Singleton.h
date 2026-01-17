@@ -7,7 +7,9 @@
 using namespace std;
 template <typename T>
 class Singleton{
-private:
+//private:
+protected:
+    //子类构造函数私有化，所以用protected
     Singleton() = default;
     Singleton(const Singleton<T>&) = delete;
     Singleton &operator = (const Singleton<T>& st) = delete;
