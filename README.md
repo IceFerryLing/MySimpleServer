@@ -123,9 +123,9 @@ asio-network-study/
 - [x] **异步客户端**: 多线程收发架构。
 
 ### 🟡 第二阶段：序列化与协议 (计划中)
-- [ ] **序列化**: 集成 Protobuf (Google Protocol Buffers)。
-- [ ] **序列化**: 集成 JSON (用于配置文件或简单通信)。
-- [ ] **应用层协议**: 简单的 HTTP 服务器实现 (Asio)。
+- [x] **序列化**: 集成 Protobuf (Google Protocol Buffers)。
+- [x] **序列化**: 集成 JSON (用于配置文件或简单通信)。
+- [x] **应用层协议**: 简单的 HTTP 服务器实现 (Asio)。
 
 > 🛑 **插播学习**: 在进入下一阶段前，强烈建议补充 **C++ 并发编程** 知识 (锁、条件变量、原子操作、内存模型)，这是理解多线程架构的基础。
 > 📺 **推荐教程**: [C++ 并发编程实战 (Bilibili)](https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290&spm_id_from=333.788.0.0)
