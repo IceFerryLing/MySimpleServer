@@ -54,7 +54,7 @@ private:
     void DealMsg();
 
     std::queue<shared_ptr<LogicNode>> _msg_que;
-    std::mutex mutex;
+    std::mutex _mutex;
     std::condition_variable _consume;
     std::thread _worker_thread;
     bool _b_stop;
@@ -62,9 +62,9 @@ private:
     std::map<short, FullCallback> _fun_callback;
 public:
     //析构公有，因为单例类会被外部调用销毁
-    ~LogicSystem() = default;
+    ~LogicSystem();
 
-    void PostMsgToQue(shared_ptr<Session> session, shared_ptr<RecvNode> recvNode);
+    void PostMsgToQue(shared_ptr<LogicNode> msg);
 };
 
 // ===================== 问题 =====================
