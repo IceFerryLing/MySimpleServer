@@ -18,5 +18,5 @@ public:
 
 private:
     shared_ptr<Session> _session;
-    shared_ptr<RecvNode> _recvNode;
+    shared_ptr<RecvNode> _recvnode;
 };
