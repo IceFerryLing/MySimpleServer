@@ -10,13 +10,15 @@
 项目暂且搁置，等待未来有时间时继续完善多线程模型和进阶技术。
 
 ## ⏱️ 学习进度 (Current Progress)
-- **当前章节**: [C++ 网络编程(9) 字节序处理和发送队列控制](https://www.bilibili.com/video/BV1tF411h7r6)
 - **已掌握知识点**:
     - 发送队列 (`std::queue`) 保证异步写操作的串行化。
     - 消息节点 (`MsgNode`) 管理数据生命周期。
     - 解决 TCP 粘包问题 (Header + Body 协议).
     > 🔗 **阶段总结**: [第一阶段：基础网络通信 (Summaries/Phase1_Summary.md)](Summaries/Phase1_Summary.md)
-
+    - 序列化集成 Protobuf 和 JSON。
+    - 逻辑层与网络层解耦设计。
+    - 优雅退出机制 (信号处理)。
+    > 🔗 **阶段总结**: [第二阶段：序列化与架构优化 (Summaries/Phase2_Summary.md)](Summaries/Phase2_Summary.md)
 ## 🗂️ 目录结构说明 (Directory Structure)
 
 ```text
