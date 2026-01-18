@@ -6,7 +6,8 @@
 
 ## 🏗️ 项目状态 (Project Status)
 **开发中 (Work In Progress)**
-目前已完成同步服务器和基础异步服务器的实现，正在进行架构优化和功能扩展。
+目前已完成同步服务器和基础异步服务器的实现，完成了序列化，逻辑层架构，优雅退出机制。
+项目暂且搁置，等待未来有时间时继续完善多线程模型和进阶技术。
 
 ## ⏱️ 学习进度 (Current Progress)
 - **当前章节**: [C++ 网络编程(9) 字节序处理和发送队列控制](https://www.bilibili.com/video/BV1tF411h7r6)
@@ -131,8 +132,8 @@ asio-network-study/
 > 📺 **推荐教程**: [C++ 并发编程实战 (Bilibili)](https://space.bilibili.com/271469206/channel/collectiondetail?sid=1623290&spm_id_from=333.788.0.0)
 
 ### 🟠 第三阶段：架构设计与优化
-- [ ] **逻辑层架构**: 封装 `LogicSystem` (单例模式)，实现业务逻辑与网络层解耦。
-- [ ] **优雅退出**: 实现服务器的安全关闭机制 (信号处理)。
+- [x] **逻辑层架构**: 封装 `LogicSystem` (单例模式)，实现业务逻辑与网络层解耦。
+- [x] **优雅退出**: 实现服务器的安全关闭机制 (信号处理)。
 - [ ] **多线程模型**: 
     - [ ] `IOServicePool`: 多 `io_context` 线程池模式。
     - [ ] `IOThreadPool`: 单 `io_context` 多线程模式。
