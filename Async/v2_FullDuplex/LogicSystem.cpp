@@ -80,3 +80,8 @@ void LogicSystem::PostMsgToQue(shared_ptr<LogicNode> msg){
     }
 }
 
+LogicSystem::~LogicSystem(){
+    _b_stop = true;
+    _consume.notify_one();//通知处理线程退出
+    _worker_thread.join();//等待线程退出
+}
