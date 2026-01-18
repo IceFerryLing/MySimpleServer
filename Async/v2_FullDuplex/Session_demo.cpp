@@ -4,6 +4,8 @@
 #include <iomanip>
 #include "json/json.h"
 #include "const.h"
+#include "LogicSystem.h"
+#include "LogicNode.h"
 
 using namespace std;
 
@@ -14,11 +16,11 @@ void Session::Start(){
         std::bind(&Session::HandleRead, this, placeholders::_1, placeholders::_2, shared_from_this()));
 }
 
-void Session::Start(){
-    _recv_head_node = make_shared<MsgNode>(HEAD_TOTAL_LEN);
-    boost::asio::async_read(_socket, boost::asio::buffer(_recv_head_node->_msg, HEAD_TOTAL_LEN),
-        std::bind(&Session::HandleReadHead, this, placeholders::_1, placeholders::_2, shared_from_this()));
-}
+// void Session::Start(){
+//     _recv_head_node = make_shared<MsgNode>(HEAD_TOTAL_LEN);
+//     boost::asio::async_read(_socket, boost::asio::buffer(_recv_head_node->_msg, HEAD_TOTAL_LEN),
+//         std::bind(&Session::HandleReadHead, this, placeholders::_1, placeholders::_2, shared_from_this()));
+// }
 
 void Session::Close(){
     _socket.close();
@@ -143,16 +145,18 @@ void Session::HandleRead(const boost::system::error_code& error,
                 bytes_transferred -= data_len;
                 _recv_msg_node->_msg[_recv_msg_node->_cur_len] = '\0';
                 //头部处理完成
-                std::cout << "Received from client: " << _socket.remote_endpoint().address().to_string() << std::endl;
-                std::cout << "Received data: " << _recv_msg_node->_msg << std::endl;
-                Json::Reader reader;
-                Json::Value root;
-                reader.parse(std::string(_recv_msg_node->_msg), root);
-                std::cout << "received json data: " << root["id"].asInt()<< ", " 
-                        << root["name"].asString() << ", "
-                        << root["value"].asDouble() << std::endl;
-                std::string return_str = root.toStyledString();
-                Send(return_str.c_str(), return_str.size());
+
+                LogicSystem::GetInst()->PostMsgToQue(make_shared<LogicNode>(shared_from_this(), _recv_msg_node));
+                // std::cout << "Received from client: " << _socket.remote_endpoint().address().to_string() << std::endl;
+                // std::cout << "Received data: " << _recv_msg_node->_msg << std::endl;
+                // Json::Reader reader;
+                // Json::Value root;
+                // reader.parse(std::string(_recv_msg_node->_msg), root);
+                // std::cout << "received json data: " << root["id"].asInt()<< ", " 
+                //         << root["name"].asString() << ", "
+                //         << root["value"].asDouble() << std::endl;
+                // std::string return_str = root.toStyledString();
+                // Send(return_str.c_str(), return_str.size());
                 //继续轮询剩余数据
                 _b_head_parsed = false;
                 _recv_head_node->Clear();
@@ -183,15 +187,17 @@ void Session::HandleRead(const boost::system::error_code& error,
             bytes_transferred -= remain_msg;
             copy_len += remain_msg;
             _recv_msg_node->_msg[_recv_msg_node->_cur_len] = '\0';
-            std::cout << "receive data is " << _recv_msg_node->_msg << endl;
-            Json::Reader reader;
-            Json::Value root;
-            reader.parse(std::string(_recv_msg_node->_msg), root);
-            std::cout << "received json data: " << root["id"].asInt()<< ", " 
-                    << root["name"].asString() << ", "
-                    << root["value"].asDouble() << std::endl;
-            std::string return_str = root.toStyledString();
-            Send(return_str.c_str(), return_str.size());
+
+            LogicSystem::GetInst()->PostMsgToQue(make_shared<LogicNode>(shared_from_this(), _recv_msg_node));
+            //std::cout << "receive data is " << _recv_msg_node->_msg << endl;
+            //Json::Reader reader;
+            //Json::Value root;
+            // reader.parse(std::string(_recv_msg_node->_msg), root);
+            // std::cout << "received json data: " << root["id"].asInt()<< ", " 
+            //         << root["name"].asString() << ", "
+            //         << root["value"].asDouble() << std::endl;
+            // std::string return_str = root.toStyledString();
+            // Send(return_str.c_str(), return_str.size());
             //继续轮询剩余未处理数据
             _b_head_parsed = false;
             _recv_head_node->Clear();
