@@ -23,52 +23,54 @@
 ## 🗂️ 目录结构说明 (Directory Structure)
 
 ```text
-asio-network-study/
-├── .github/
-│   └── copilot-instructions.md # Copilot 配置文件
-├── .vscode/
-│   └── tasks.json              # VS Code 编译任务配置
-├── Async/                      # 异步非阻塞模型 (Proactor Pattern)
-│   ├── v1_Simple/              # [版本1] 简单的半双工实现
-│   │   ├── AsyncServer.cpp     # 程序入口
-│   │   ├── README.md           # 版本说明
-│   │   ├── Server_demo.cpp     # 服务器类实现
-│   │   ├── Server_demo.h       # 服务器类声明
-│   │   ├── Session_demo.cpp    # 会话类实现 (读写逻辑)
-│   │   └── Session_demo.h      # 会话类声明
-│   ├── v2_FullDuplex/          # [版本2] 健壮的全双工实现 (推荐)
-│   │   ├── AsyncServer.cpp     # 程序入口
-│   │   ├── MsgNode.cpp         # 消息节点实现
-│   │   ├── MsgNode.h           # 消息节点声明 (RAII)
-│   │   ├── README.md           # 版本说明
-│   │   ├── Server_demo.cpp     # 服务器类实现
-│   │   ├── Server_demo.h       # 服务器类声明
-│   │   ├── Session_demo.cpp    # 会话类实现 (读写分离)
-│   │   └── Session_demo.h      # 会话类声明
-│   ├── AsyncClient/            # 异步客户端实现
-│   │   ├── main.cpp            # 客户端入口 (含发送线程)
-│   │   ├── AsyncClient.cpp     # 客户端核心类实现
-│   │   └── AsyncClient.h       # 客户端核心类声明
-│   └── README.md               # Async 模块总说明
-├── pre_learn/                  # 基础概念验证与代码片段
-│   ├── endpoint/               # 端点与缓冲区
-│   │   ├── endpoint.cpp
-│   │   ├── endpoint.h
-│   │   └── README.md
-│   └── Session/                # Session 类原型
-│       ├── README.md
-│       ├── Session.cpp
-│       └── Session.h
-├── Summaries/                  # 学习总结与规划
-│   ├── Phase1_Summary.md       # 第一阶段总结
-│   └── ROADMAP.md              # 学习路线图
-├── Sync/                       # 同步阻塞模型 (Thread-Per-Connection)
-│   ├── README.md               # Sync 模块说明
-│   ├── SyncClient.cpp          # 同步客户端
-│   ├── SyncClient学习版.cpp     # 带注释的客户端代码
-│   ├── SyncServer.cpp          # 同步服务器
-│   └── SyncServer学习版.cpp     # 带注释的服务器代码
-└── README.md                   # 项目总说明
+asio-network-study
+├── .github
+│   └── copilot-instructions.md
+├── Async
+│   ├── AsyncClient
+│   │   ├── AsyncClient.cpp
+│   │   ├── AsyncClient.h
+│   │   └── main.cpp
+│   ├── v1_Simple
+│   │   ├── AsyncServer.cpp
+│   │   ├── Server_demo.cpp
+│   │   ├── Server_demo.h
+│   │   ├── Session_demo.cpp
+│   │   └── Session_demo.h
+│   └── v2_FullDuplex
+│       ├── AsyncServer.cpp
+│       ├── LogicNode.cpp
+│       ├── LogicNode.h
+│       ├── LogicSystem.cpp
+│       ├── LogicSystem.h
+│       ├── MsgNode.cpp
+│       ├── MsgNode.h
+│       ├── Server_demo.cpp
+│       ├── Server_demo.h
+│       ├── Session_demo.cpp
+│       ├── Session_demo.h
+│       ├── Singleton.h
+│       ├── const.h
+│       ├── main.cpp
+│       └── 加上逻辑层的服务器结构.png
+├── Summaries
+│   ├── Phase1_Summary.md
+│   ├── Phase2_Summary.md
+│   └── ROADMAP.md
+├── Sync
+│   ├── SyncClient.cpp
+│   ├── SyncClient学习版.cpp
+│   ├── SyncServer.cpp
+│   └── SyncServer学习版.cpp
+└── pre_learn
+    ├── Session
+    │   ├── Session.cpp
+    │   └── Session.h
+    ├── Single_model
+    │   └── Single.cpp
+    └── endpoint
+        ├── endpoint.cpp
+        └── endpoint.h
 ```
 
 ### 1. [Sync/](Sync/) - 同步阻塞模型
