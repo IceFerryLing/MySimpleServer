@@ -29,6 +29,8 @@ std::string& Session::GetUuid(){
     return _uuid;
 }
 
+//send函数将消息加入发送队列，并启动异步写操作
+//参数是消息内容和长度
 void Session::Send(std::string msg, short msg_id){
     int send_que_size = _send_queue.size();
     std::lock_guard<std::mutex> lock(_send_lock);

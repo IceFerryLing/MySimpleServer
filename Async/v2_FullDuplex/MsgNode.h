@@ -4,7 +4,9 @@
 #include <boost/asio.hpp>
 #include "const.h"
 using namespace std;
+using boost::asio::ip::tcp;
 
+class LogicSystem;
 // 前向声明 Session 类，因为它是 friend
 class Session;
 
@@ -33,9 +35,9 @@ public:
 
 // 接收消息节点，继承自 MsgNode
 class RecvNode:public MsgNode{
+    friend class LogicNode;
 public:
     RecvNode(short max_len, short msg_id);
-private:
     short _msg_id;
 };
 
@@ -43,6 +45,5 @@ private:
 class SendNode:public MsgNode{
 public:
     SendNode(const char* msg, short max_len, short msg_id);
-private:
     short _msg_id;
 };

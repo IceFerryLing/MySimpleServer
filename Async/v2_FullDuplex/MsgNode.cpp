@@ -2,6 +2,7 @@
 #include "const.h"
 #include <cstring>
 #include <iostream>
+#include "LogicSystem.h"
 using namespace std;
 
 #define MAX_LENGTH 1024*2
