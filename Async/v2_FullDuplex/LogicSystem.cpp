@@ -85,3 +85,4 @@ LogicSystem::~LogicSystem(){
     _consume.notify_one();//通知处理线程退出
     _worker_thread.join();//等待线程退出
 }
+
